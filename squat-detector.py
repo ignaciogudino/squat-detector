@@ -1,6 +1,8 @@
 import cv2
 import mediapipe as mp
 import numpy as np
+import vlc
+import pygame, sys, time
 from math import acos, degrees
 
 mp_drawing = mp.solutions.drawing_utils
@@ -10,6 +12,11 @@ cap = cv2.VideoCapture(0)
 up = False #Estirado
 down = False #Flexion de piernas
 count = 0
+start = False
+
+pygame.init()
+sound = pygame.mixer.Sound("./confirmation.wav")
+
 with mp_pose.Pose(
      static_image_mode=False) as pose:
 
@@ -36,22 +43,29 @@ with mp_pose.Pose(
                p2 = np.array([x2, y2])
                p3 = np.array([x3, y3])
 
+               if 100 <= p3[0] <= 500 and 100 <= p3[1] <= 500 and 100 <= p2[0] <= 500 and 100 <= p2[1] <= 500 and  100 <= p1[0] <= 500 and 100 <= p1[1] <= 500:
+                    start = True
+               else: 
+                    start = False
+          
                l1 = np.linalg.norm(p2 - p3)
                l2 = np.linalg.norm(p1 - p3)
                l3 = np.linalg.norm(p1 - p2)
 
                # Calcular el ángulo
                angle = degrees(acos((l1**2 + l3**2 - l2**2) / (2 * l1 * l3)))
-               if angle >= 160:
-                    up = True
-               if up == True and down == False and angle <= 70:
-                    down = True
-               if up == True and down == True and angle >= 160:
-                    count += 1
-                    up = False
-                    down = False
 
-               print("contador: ", count)
+               if start:
+                    if angle >= 160:
+                         up = True
+                    if up == True and down == False and angle <= 70:
+                         down = True
+                    if up == True and down == True and angle >= 160:
+                         count += 1
+                         up = False
+                         down = False
+                         sound.play()
+
                # Visualización
                aux_image = np.zeros(frame.shape, np.uint8)
                cv2.line(aux_image, (x1, y1), (x2, y2), (255, 0, 0), 20)
@@ -66,9 +80,14 @@ with mp_pose.Pose(
                cv2.circle(output, (x2, y2), 6, (0, 0, 255), 4)
                cv2.circle(output, (x3, y3), 6, (0, 0, 255), 4)
                cv2.putText(output, str(int(angle)), (x2 + 30, y2), 1, 1.5, (0, 255, 255), 2)
-               cv2.putText(output, str(count), (10, 50), 1, 3.5, (0, 255, 255), 2)
+               if start:
+                    cv2.putText(output, str(count), (10, 50), 1, 3.5, (0, 255, 255), 2)
+               else: 
+                    cv2.putText(output, str("UBICACION INCORRECTA"), (10, 50), 1, 2, (0, 0, 255), 2)
+
                cv2.imshow("output", output)
-          cv2.imshow("Frame", frame)
+          # cv2.imshow("Frame", frame)
+
           if cv2.waitKey(1) & 0xFF == 27:
                break
 
