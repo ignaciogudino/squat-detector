@@ -1,7 +1,6 @@
 import cv2
 import mediapipe as mp
 import numpy as np
-import vlc
 import pygame, sys, time
 from math import acos, degrees
 
@@ -10,12 +9,15 @@ mp_pose = mp.solutions.pose
 
 cap = cv2.VideoCapture(0)
 up = False #Estirado
+wrong = False
 down = False #Flexion de piernas
 count = 0
 start = False
 
 pygame.init()
-sound = pygame.mixer.Sound("./confirmation.wav")
+success = pygame.mixer.Sound("./confirmation.wav")
+error = pygame.mixer.Sound("./error.wav")
+
 
 with mp_pose.Pose(
      static_image_mode=False) as pose:
@@ -58,13 +60,23 @@ with mp_pose.Pose(
                if start:
                     if angle >= 160:
                          up = True
-                    if up == True and down == False and angle <= 70:
+                    if up == True and down == False and angle <= 130:
+                         wrong = True     
+                    if up == True and down == False and angle <= 80:
                          down = True
-                    if up == True and down == True and angle >= 160:
+                         wrong = False
+                    if up == True and down == True and angle >= 160 and wrong == False:
                          count += 1
                          up = False
                          down = False
-                         sound.play()
+                         wrong = False
+                         success.play()
+                    if wrong == True and angle >= 160:
+                         up = False
+                         down = False
+                         wrong = False
+                         error.play()   
+                         cv2.putText(frame, str("X"), (0, 0), 1, 5, (0, 0, 255), 2, 10,True)                     
 
                # Visualización
                aux_image = np.zeros(frame.shape, np.uint8)
@@ -84,6 +96,7 @@ with mp_pose.Pose(
                     cv2.putText(output, str(count), (10, 50), 1, 3.5, (0, 255, 255), 2)
                else: 
                     cv2.putText(output, str("UBICACION INCORRECTA"), (10, 50), 1, 2, (0, 0, 255), 2)
+
 
                cv2.imshow("output", output)
           # cv2.imshow("Frame", frame)
